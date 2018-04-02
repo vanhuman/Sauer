@@ -1,3 +1,4 @@
+// processing note input from Sauer via EXT input (MIDISport f.e.)
 // more interesting effects
 // incorporate note length
 
@@ -13,9 +14,9 @@ var effects = [\echo, \chord, \random, \thrill];
 ~effectNbr = 3; // thrill
 
 // start controllers
+~midiOutInit = 1;
 ~midiInDevice = \EXT;
 ~midiOutDevice = "MUL";
-// ~midiInDevice = \MAN;
 // ~midiOutDevice = "IAC1";
 if(~wControllersAvail.isNil, { (Document.dir++"Lapis/Controllers.scd").load });
 
@@ -50,7 +51,7 @@ fEcho = {
 	var step = 1, max = [120, note+10].wchoose([0.1,0.9]);
 	inf.do { |i|
 		step = i%(max-note);
-		[currentNote,step].postln;
+		[note,step].postln;
 		~midiOut.noteOn(outChan,note+step,127);
 		[0.05,0.2].wchoose([0.9,0.1]).wait;
 		~midiOut.noteOn(outChan,note+step,0);
@@ -172,10 +173,10 @@ OSCdef(\sauerNoteOff, {  |msg|
 
 
 ~localAddr = NetAddr("127.0.0.1", 57120);
-~localAddr.sendMsg("/midi/noteOn", 1, 40, 1, \MAN)
-~localAddr.sendMsg("/midi/noteOff", 1, 40, 1, \MAN)
+~localAddr.sendMsg("/midi/noteOn", 1, 40, 1, "EXT")
+~localAddr.sendMsg("/midi/noteOff", 1, 40, 1, "EXT")
 
-~localAddr.sendMsg("/midi/noteOn", 1, 70, 1, \MAN)
-~localAddr.sendMsg("/midi/noteOff", 1, 70, 1, \MAN)
+~localAddr.sendMsg("/midi/noteOn", 1, 70, 1, \EXT)
+~localAddr.sendMsg("/midi/noteOff", 1, 70, 1, \EXT)
 
 
