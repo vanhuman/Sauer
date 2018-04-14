@@ -11,6 +11,14 @@ following KP6-3.7
 
 */
 
+// Lapis
+(
+~lisa = "LiveSampler.scd";
+~sk = "SynthKeysMPKorgans.scd";
+"Lapis/InOut.scd".loadRelative();
+)
+
+
 (
 
 var playnote, taskfunc;
@@ -21,7 +29,8 @@ var taskLabels = [
 ];
 var envs = Array.newClear(taskKeys.size);
 var tasks = Array.newClear(taskKeys.size);
-var verbose = false;
+var tasksRunning = false!(taskKeys.size);
+var verbose = false, fStartTask;
 
 if (~bo.isNil) { "Utopa setup not loaded!".warn };
 
@@ -29,19 +38,27 @@ if (~bo.isNil) { "Utopa setup not loaded!".warn };
 MIDIIn.connectAll;
 ~mpk = MIDIout.new().getIDs()[3];
 
+fStartTask = {
+	arg index, val;
+	if (val > 0) {
+		if (tasks[index].isNil) { tasks[index] = envs[index].use { Task(taskfunc) } };
+		("Started: " + taskLabels[index]).warn;
+		envs[index].restart = true;
+		tasks[index].play;
+		tasksRunning[index] = true;
+	} {
+		("Stopped: " + taskLabels[index]).warn;
+		tasks[index].stop;
+		tasksRunning[index] = false;
+	};
+};
+
 MIDIdef.cc(\organCCenvs, {
 	arg val, num, chan;
 	var index = taskKeys.indexOf(num);
 	// [chan, num, val].postln;
 	if (index.notNil) {
-		if (val > 0) {
-			if (tasks[index].isNil) { tasks[index] = envs[index].use { Task(taskfunc) } };
-			taskLabels[index].warn;
-			envs[index].restart = true;
-			tasks[index].play;
-		} {
-			tasks[index].stop;
-		};
+		fStartTask.value(index, val);
 	};
 }, ccNum: taskKeys, srcID: ~mpk);
 
@@ -125,7 +142,7 @@ taskfunc = {
 
 "--- A low notes ---".postln;
 envs[0] = (
-	notes: ["Bb", "E0"], chans: [0], octaves: [1, 2],
+	notes: ["Bb", "E0"], chans: [0], octaves: [2],
 	rest: nil, skip: nil, random: true,
 	wait: [6.0, 6], weight: nil, durationFactor: 0.1,
 	restart: true, verbose: verbose, playnote: playnote
@@ -134,7 +151,7 @@ envs[0] = (
 "--- B melody ---".postln;
 envs[1] = (
 	notes: ["D0", "F0", "A0", "A0", "F0", "G0", "C0", "D0", "E0", "F0", "C0", "D0", "A0", "G0", "F0", "G0", "C0", "D0", "A0", "F0"],
-	chans: [1], octaves: [4, 5, 6],
+	chans: [1], octaves: [5, 6],
 	rest: 0.2, skip: 0.1, random: false,
 	wait: [0.4, 0.4] * 0.5, weight: [0.85, 0.15], durationFactor: nil,
 	restart: true, verbose: verbose, playnote: playnote
@@ -176,9 +193,9 @@ envs[5] = (
 		["E0", "Bb", "E0", "Bb"],
 		["B0", "Bb", "A0", "E0^"]
 	],
-	chans: [0, 0, 1, 2], octaves: [ [1], [2], [3], [5] ],
+	chans: [0, 0, 1, 2], octaves: [ [2], [2], [3], [5] ],
 	rest: nil, skip: nil, random: false,
-	wait: [2, 2], weight: nil, durationFactor: nil,
+	wait: [2, 2], weight: nil, durationFactor: 0.05,
 	restart: true, verbose: verbose, playnote: playnote
 );
 
@@ -188,7 +205,7 @@ envs[6] = (
 		"C0"!9,
 		"F#"!9,
 	],
-	chans: [0, 0], octaves: [ [2], [1, 2]],
+	chans: [0, 0], octaves: [ [2], [2]],
 	rest: nil, skip: nil, random: false,
 	wait: [4, 6], weight: nil, durationFactor: nil,
 	restart: true, verbose: verbose, playnote: playnote
@@ -233,6 +250,30 @@ envs[9] = (
 	restart: true, verbose: verbose, playnote: playnote
 );
 
+w = Window("Sauer Notes", Rect(650, 60, 200, 40)).background_(Color.rand);
+StaticText(w, Rect(20, 10, 160, 20)).string_("SAUER NOTES").align_(\center);
+
+w.view.keyDownAction_({
+	arg view, char, modifiers, unicode, keycode;
+	var numberKeys = [18, 19, 20, 21, 23, 22, 26, 28, 25, 29], index;
+
+	// Number keys select patterns
+	index = numberKeys.indexOf(keycode);
+	if(index.notNil, {
+		if (tasksRunning[index].not,
+			{ fStartTask.value(index, 127) },
+			{ fStartTask.value(index, 0) });
+	})
+});
+
+w.onClose = {
+	MIDIdef.freeAll;
+	tasks.do { |task|
+		task.stop;
+	};
+};
+w.alwaysOnTop = true;
+w.front;
 )
 
 
