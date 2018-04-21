@@ -15,13 +15,12 @@ following KP6-3.7
 (
 ~lisa = "LiveSampler.scd";
 ~sk = "SynthKeysMPKorgans.scd";
-"Lapis/InOut.scd".loadRelative();
+"../Lapis/InOut.scd".loadRelative();
 )
-
 
 (
 
-var playnote, taskfunc;
+var playnote, taskfunc, fStopAllNotes;
 var taskKeys = [32, 33, 34, 35, 28, 29, 24, 25, 26, 27];
 var taskLabels = [
 	"--- A low notes ---", "--- B melody ---", "--- thrills on Bb-E ---", "--- thrills on D-F ---", "--- G ---", "--- J ---",
@@ -34,7 +33,7 @@ var verbose = false, fStartTask;
 
 if (~bo.isNil) { "Utopa setup not loaded!".warn };
 
-~midiOutDevice = "MUL";
+// ~midiOutDevice = "MUL";
 MIDIIn.connectAll;
 ~mpk = MIDIout.new().getIDs()[3];
 
@@ -51,6 +50,15 @@ fStartTask = {
 		tasks[index].stop;
 		tasksRunning[index] = false;
 	};
+};
+
+fStopAllNotes = {
+	"Stop all notes".postln;
+	4.do { |index|
+		127.do { |note|
+			~midiOut.noteOff(index, note, 127);
+		}
+	}
 };
 
 MIDIdef.cc(\organCCenvs, {
@@ -256,6 +264,10 @@ StaticText(w, Rect(20, 10, 160, 20)).string_("SAUER NOTES").align_(\center);
 w.view.keyDownAction_({
 	arg view, char, modifiers, unicode, keycode;
 	var numberKeys = [18, 19, 20, 21, 23, 22, 26, 28, 25, 29], index;
+
+	if(keycode === 53, {
+		fStopAllNotes.value();
+	});
 
 	// Number keys select patterns
 	index = numberKeys.indexOf(keycode);
