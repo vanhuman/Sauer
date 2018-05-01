@@ -1,15 +1,4 @@
-/*
-playing notes on Sauer / Utopa to process and improvise with
-following KP6-3.7
-1. low pedal notes
-2. Warp melody, different rhythms, same order of the notes
-3. G notes, not too dense
-4. add Warp melody samples
-5. J massive sound, going into
-6. K modulation
-7. Glissandi, stop on climax
-
-*/
+/* playing notes on Sauer / Utopa to process and improvise with */
 
 // Lapis
 (
@@ -19,7 +8,21 @@ following KP6-3.7
 )
 
 (
+// ------------ Baroque Organ Setup ------------
+if(~bo.notNil, { ~bo.clearAll() });
+~bo = EM(); // functions in an EM always have the environment as first argument
+~bo.addr = NetAddrMon.new("192.168.0.1", 1803);
+// ~bo.addr = NetAddrMon.new("127.0.0.1", 8000);
 
+~bo.noteOffset = 0;
+~bo.chanOffset = 0;
+~bo.upperRange = 85; // not sounding from 86 - 92
+(Document.dir ++ "KP6-3.7/Lib/Definitions.scd").load();
+(Document.dir ++ "KP6-3.7/Lib/Gui.scd").load();
+)
+
+// ------------ MIDI Setup ------------
+(
 var playnote, taskfunc, fStopAllNotes;
 var taskKeys = [32, 33, 34, 35, 28, 29, 24, 25, 26, 27];
 var taskLabels = [
@@ -33,7 +36,7 @@ var verbose = false, fStartTask;
 
 if (~bo.isNil) { "Utopa setup not loaded!".warn };
 
-// ~midiOutDevice = "MUL";
+~midiOutDevice = "MUL";
 MIDIIn.connectAll;
 ~mpk = MIDIout.new().getIDs()[3];
 
@@ -83,10 +86,10 @@ playnote = {
 	arg chans, notes, vel, dur = 0, delay = 0;
 	if (~verbose) { format("Chan %, note %, duration % sec", chans, notes, dur.round(0.01)).postln };
 	chans.size.do {|index|
-		{ ~bo.midinote(chans[index], notes[index], vel) }.defer(delay);
+		// { ~bo.midinote(chans[index], notes[index], vel) }.defer(delay);
 		{ ~midiOut.noteOn(chans[index], notes[index], vel) }.defer(delay);
 		if (dur > 0) {
-			{ ~bo.midinote(chans[index], notes[index], 0) }.defer(dur + delay);
+			// { ~bo.midinote(chans[index], notes[index], 0) }.defer(dur + delay);
 			{ ~midiOut.noteOn(chans[index], notes[index], 0) }.defer(dur + delay);
 		};
 	};
@@ -215,7 +218,7 @@ envs[6] = (
 	],
 	chans: [0, 0], octaves: [ [2], [2]],
 	rest: nil, skip: nil, random: false,
-	wait: [4, 6], weight: nil, durationFactor: nil,
+	wait: [4, 6], weight: nil, durationFactor: 0.05,
 	restart: true, verbose: verbose, playnote: playnote
 );
 
