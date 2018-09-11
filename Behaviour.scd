@@ -24,7 +24,8 @@ if(~bo.notNil, { ~bo.clearAll() });
 // ------------ MIDI Setup ------------
 (
 var playnote, taskfunc, fStopAllNotes;
-var taskKeys = [32, 33, 34, 35, 28, 29, 24, 25, 26, 27];
+// bank A: 20 - 27 / bank B: 28 - 35
+var taskKeys = [24, 25, 26, 27, 28, 29, 30, 31, 20, 21];
 var taskLabels = [
 	"--- A low notes ---", "--- B melody ---", "--- thrills on Bb-E ---", "--- thrills on D-F ---", "--- G ---", "--- J ---",
 	"--- K low notes ---", "--- K melody ---", "--- K glissandi high ---", "--- K glissandi lower ---"
@@ -36,9 +37,8 @@ var verbose = false, fStartTask;
 
 if (~bo.isNil) { "Utopa setup not loaded!".warn };
 
-// ~midiOutDevice = "MUL";
-~midiOutDevice = "EXT";
-MIDIIn.connectAll;
+~midiOutDevice = "MUL";
+// ~midiOutDevice = "EXT";
 ~mpk = MIDIout.new().getIDs()[3];
 
 fStartTask = {
@@ -74,14 +74,23 @@ MIDIdef.cc(\organCCenvs, {
 	};
 }, ccNum: taskKeys, srcID: ~mpk);
 
-MIDIdef.cc(\organCCcontrol, {
+MIDIdef.cc(\organCCcontrol4, {
 	arg val, num, chan;
 	var glissandiSpeed = 1;
 	// [chan, num, val].postln;
-	glissandiSpeed = val.linexp(0 ,127, 0.5, 10);
+	glissandiSpeed = val.linexp(0, 127, 0.5, 10);
 	envs[8].speed = glissandiSpeed;
 	envs[9].speed = glissandiSpeed;
 }, ccNum: 4, srcID: ~mpk);
+
+MIDIdef.cc(\organCCcontrol5, {
+	arg val, num, chan;
+	var glissandiDirectionRandom = 0;
+	// [chan, num, val].postln;
+	glissandiDirectionRandom = val.linlin(0, 127, 0.0, 0.9);
+	envs[8].direction = glissandiDirectionRandom;
+	envs[9].direction = glissandiDirectionRandom;
+}, ccNum: 5, srcID: ~mpk);
 
 playnote = {
 	arg chans, notes, vel, dur = 0, delay = 0;
@@ -97,7 +106,7 @@ playnote = {
 };
 
 taskfunc = {
-	var notes, midiNotes, wait, justRested = false, octaves, chord, nbr, noteIndex, count, chans, dur;
+	var notes, midiNotes, wait, justRested = false, octaves, chord, nbr, noteIndex, count, chans, dur, sign = 1;
 	inf.do {
 		if (~chans[0].isString) { ~chans = [~chans] };
 		if (~notes[0].isString) { ~notes = [~notes] };
@@ -148,25 +157,26 @@ taskfunc = {
 			"Arrays for notes, chans and octaves do not match!".warn;
 			1.wait;
 		};
-		count = count + 1;
+		if (sign == 1) { if (~direction.coin) { sign = -1 } } { if (~direction.coin) { sign = 1 } };
+		count = count + sign;
 	}
 };
 
 "--- A low notes ---".postln;
 envs[0] = (
-	notes: ["Bb", "E0"], chans: [0], octaves: [2],
-	rest: nil, skip: nil, random: true,
+	notes: ["Bb", "C1", "E0"], chans: [0], octaves: [2],
+	rest: nil, skip: nil, random: false,
 	wait: [6.0, 6], weight: nil, durationFactor: 0.1,
-	restart: true, verbose: verbose, playnote: playnote
+	restart: true, verbose: verbose, playnote: playnote, direction: 0
 );
 
 "--- B melody ---".postln;
 envs[1] = (
 	notes: ["D0", "F0", "A0", "A0", "F0", "G0", "C0", "D0", "E0", "F0", "C0", "D0", "A0", "G0", "F0", "G0", "C0", "D0", "A0", "F0"],
-	chans: [1], octaves: [5, 6],
-	rest: 0.2, skip: 0.1, random: false,
-	wait: [0.4, 0.4] * 0.5, weight: [0.85, 0.15], durationFactor: nil,
-	restart: true, verbose: verbose, playnote: playnote
+	chans: [1], octaves: [4, 5, 6],
+	rest: 0.2, skip: 0.1, random: true,
+	wait: [0.4, 0.8] * 0.5, weight: [0.85, 0.15], durationFactor: 0.2,
+	restart: true, verbose: verbose, playnote: playnote, direction: 0
 );
 
 "--- thrills on Bb-E ---".postln;
@@ -174,7 +184,7 @@ envs[2] = (
 	notes: ["Bb", "E0"], chans: [2], octaves: [5, 6, 7],
 	rest: 0.2, skip: nil, random: false,
 	wait: [0.01, 0.05], weight: nil, durationFactor: nil,
-	restart: true, verbose: verbose, playnote: playnote
+	restart: true, verbose: verbose, playnote: playnote, direction: 0
 );
 
 "--- thrills on D-F ---".postln;
@@ -182,7 +192,7 @@ envs[3] = (
 	notes: ["D0", "F0"], chans: [2], octaves: [5, 6, 7],
 	rest: 0.2, skip: nil, random: false,
 	wait: [0.01, 0.05], weight: nil, durationFactor: nil,
-	restart: true, verbose: verbose, playnote: playnote
+	restart: true, verbose: verbose, playnote: playnote, direction: 0
 );
 
 "--- G ---".postln;
@@ -194,7 +204,7 @@ envs[4] = (
 	chans: [1, 2], octaves: [ [2], [4] ],
 	rest: nil, skip: 0.2, random: false,
 	wait: [2, 2], weight: nil, durationFactor: nil,
-	restart: true, verbose: verbose, playnote: playnote
+	restart: true, verbose: verbose, playnote: playnote, direction: 0
 );
 
 "--- J ---".postln;
@@ -208,7 +218,7 @@ envs[5] = (
 	chans: [0, 0, 1, 2], octaves: [ [2], [2], [3], [5] ],
 	rest: nil, skip: nil, random: false,
 	wait: [2, 2], weight: nil, durationFactor: 0.05,
-	restart: true, verbose: verbose, playnote: playnote
+	restart: true, verbose: verbose, playnote: playnote, direction: 0
 );
 
 "--- K1 ---".postln;
@@ -220,7 +230,7 @@ envs[6] = (
 	chans: [0, 0], octaves: [ [2], [2]],
 	rest: nil, skip: nil, random: false,
 	wait: [4, 6], weight: nil, durationFactor: 0.05,
-	restart: true, verbose: verbose, playnote: playnote
+	restart: true, verbose: verbose, playnote: playnote, direction: 0
 );
 
 "--- K2 ---".postln;
@@ -231,7 +241,7 @@ envs[7] = (
 	chans: [1], octaves: [ [4, 5] ],
 	rest: nil, skip: nil, random: false,
 	wait: [0.5, 0.5], weight: nil, durationFactor: nil,
-	restart: true, verbose: verbose, playnote: playnote
+	restart: true, verbose: verbose, playnote: playnote, direction: 0
 );
 
 "--- K3 ---".postln;
@@ -242,10 +252,10 @@ envs[8] = (
 		["B0^", "A#^", "A0^", "G#^", "G0^", "F#^", "F0^", "E0^", "D#^", "D0^", "C#^", "C0^"] ++
 		["B0", "A#", "A0", "G#", "G0", "F#", "F0", "E0", "D#", "D0", "C#", "C0"]
 	],
-	chans: [2], octaves: [ [5]],
+	chans: [2], octaves: [ [5] ],
 	rest: nil, skip: nil, random: false,
 	wait: [0.01, 0.03], weight: nil, durationFactor: nil, speed: 1,
-	restart: true,	verbose: verbose, playnote: playnote
+	restart: true,	verbose: verbose, playnote: playnote, direction: 0
 );
 
 "--- K4 ---".postln;
@@ -256,10 +266,10 @@ envs[9] = (
 		["C0", "C#", "D0", "D#", "E0", "F0", "F#", "G0", "G#", "A0", "A#", "B0"] ++
 		["C0^", "C#^", "D0^", "D#^", "E0^", "F0^", "F#^", "G0^", "G#^", "A0^", "A#^", "B0^"]
 	],
-	chans: [3], octaves: [ [4]],
+	chans: [3], octaves: [ [4] ],
 	rest: nil, skip: 0.1, random: false,
 	wait: [0.01, 0.04], weight: nil, durationFactor: nil, speed: 1,
-	restart: true, verbose: verbose, playnote: playnote
+	restart: true, verbose: verbose, playnote: playnote, direction: 0
 );
 
 w = Window("Sauer Notes", Rect(650, 60, 200, 40)).background_(Color.rand);
