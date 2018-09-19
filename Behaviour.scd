@@ -39,7 +39,7 @@ if (~bo.isNil) { "Utopa setup not loaded!".warn };
 
 ~midiOutDevice = "MUL";
 // ~midiOutDevice = "EXT";
-~mpk = MIDIout.new().getIDs()[3];
+~mpk = SetMIDIOut.new().getIDs()[3];
 
 fStartTask = {
 	arg index, val;
